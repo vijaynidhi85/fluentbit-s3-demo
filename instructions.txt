@@ -1,0 +1,87 @@
+/Users/vijay/Documents/Objects/log_forwarder/rabbitmq_project
+
+https://lucid.app/lucidchart/b3a19580-59bf-4c74-81ae-5fc63a524fa4/edit?beaconFlowId=F2188020D73E75EF&invitationId=inv_b9d78c6a-9024-41f5-b935-2ce825284480&page=0_0#
+
+---
+Preparation:
+
+1. Create obj store and have two buckets. One for the side car scenario and one for the seperate pod with shared volume access
+    Note the following:
+    a. Bucke name
+    b. Object store endpoint
+    c. Access and Secret Key
+2. Install pika pip libray in your laptop: pip install pika
+3. Deploy Files and create share for csi. Please note the name. The share should have following squash:
+    a. Root squash
+    b. Anonymous UID and GID : 1001
+4. Create storage class for files and volume group
+
+
+
+ 
+Side Car Injection:
+3   
+====
+
+
+cd rabbitmq_project/
+
+1. Modify generate_failed_logs.py to any k8s worker node ip_address
+2. Modify the rabbitmq_sidecar.yaml to suitable values:
+    1. AWS_ACCESS_KEY_ID (line 111)
+    2. AWS_SECRET_ACCESS_KEY (line 112)
+    3. persistence.storageClass (line 877)
+    4. change bucket name to your bucket (line 103)
+    5. Change endpoint to the s3 endpoint (line 104)
+
+
+3. Install via helm:
+kubectl create ns rabbitmq-injection
+kubectl config set-context --current --namespace rabbitmq-injection
+helm install rabbit1 bitnami/rabbitmq -f rabbitmq_sidecar.yaml
+
+4. 
+5. Run script to generate some logs:
+python generate_failed_logs.py
+
+
+6. Open Object browser: (for eg: https://10.45.20.152/objectsbrowser/index.html)
+
+===
+
+kubectl logs rabbit2-rabbitmq-0 default-fluentbit -f
+
+
+
+
+
+Seperate Pod Setup:
+===
+
+1. kubectl create ns fbpod
+2.  helm install rabbit bitnami/rabbitmq -f rabbitmq_seperate_pod.yaml -f fbpod
+
+
+
+
+
+
+Lab Setup in Place:
+===
+1. Files Deployed:10.45.20.190
+    Share: /csishare1
+2. PC where objects is deployed: 10.45.20.151 (admin: nutanix/4u)
+
+3. Object Cluster Details:  
+    https://10.45.20.152
+    AWS_ACCESS_KEY_ID: "Utg0D1KnYwovc-VZJsL0t4aNiyOgOhgY"
+    AWS_SECRET_ACCESS_KEY: "AuQC7kEDQ6fNPU6-Ri26CzXG2POy6ysH"
+    
+    Bucket 1: fb-inject
+    Bucket 2: fb-standalone 
+
+4. Rancher K8s cluster  - 3 Nodes
+   CSI Installed
+   VMS are part of this PE(Not same PC as above) 10.40.166.30 (admin: Nutanix.123)
+
+
